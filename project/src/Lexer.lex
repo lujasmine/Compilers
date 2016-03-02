@@ -27,7 +27,7 @@ LINE_TERMINATOR 	= [\r|\n|\r\n]
 INPUT_CHARACTER 	= [^\r\n]
 WHITESPACE 		= {LINETERMINATOR}|[ \t\r\n]
 LETTER 			= [a-zA-Z]
-PUNCTUATION 		= [ !"#$%&'()*+,-./:;<=>?@[\]^_`{¦}~]
+PUNCTUATION 	= " "|[!-&]|[(-~]
 CHARACTER 		= "’"{LETTER}|{PUNCTUATION}|{DIGIT}"’"
 DIGIT 			= [0-9]
 BOOLEAN_CONSTANT 	= ("T"|"F")
