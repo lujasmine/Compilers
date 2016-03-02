@@ -23,26 +23,24 @@ import java_cup.runtime.*;
 	}
 %}
 
-LineTerminator = \r|\n|\r\n
-InputCharacter = [^\r\n]
-WhiteSpace     = {LineTerminator} | [ \t\f]
+LINE_TERMINATOR 	= [\r|\n|\r\n]
+INPUT_CHARACTER 	= [^\r\n]
+WHITESPACE 		= {LINETERMINATOR}|[ \t\r\n]
+LETTER 			= [a-zA-Z]
+PUNCTUATION 		= [ !"#$%&'()*+,-./:;<=>?@[\]^_`{¦}~]
+CHARACTER 		= "’"{LETTER}|{PUNCTUATION}|{DIGIT}"’"
+DIGIT 			= [0-9]
+BOOLEAN_CONSTANT 	= ("T"|"F")
 
-//TODO 
-//define letter, punctuation, digit (which are char)
+INTEGER			= 0|[1-9][0-9]*
+FLOATING_POINT		= {DIGIT}+"."{DIGIT}+
+RATIONAL		= (INTEGER"_")?INTEGER"/"INTEGER|INTEGER
 
-//TODO check declarations for comments
-/* comments */
-Comment = {MultiLineComment} | {NormalComment}
-MultiLineComment   = "/#" [^*] ~"#/"
-NormalComment     = "/#" {InputCharacter}* {LineTerminator}?
+COMMENT 		= {MULTI_LINE_COMMENT}|{NORMAL_COMMENT}
+MULTI_LINE_COMMENT	= "/#" ([^#]|\#+[^/#])* "#/"
+NORMAL_COMMENT		= "/#" ([^#]|\#+[^/#])* {LINE_TERMINATOR}?
 
-//TODO check declaration for identifier
 IDENTIFIER  = {LETTER}({LETTER}|{DIGIT}|"_")*
-//OR??
-Identifier = [:jletter:] [:jletterdigit:]* /* NEED UNDERSCORES */
-
-//TODO check this declaration/ what is it?? (can't find this in spec)
-DecIntegerLiteral = 0 | [1-9][0-9]*
 
 %state STRING
 
@@ -50,77 +48,86 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 
 //regular expression rules
 
-//TODO what are keywords for?
-/* keywords */
-<YYINITIAL> "abstract"           { return symbol(sym.ABSTRACT); }
-<YYINITIAL> "boolean"            { return symbol(sym.BOOLEAN); }
-<YYINITIAL> "break"              { return symbol(sym.BREAK); }
-
 <YYINITIAL> {
-	/* identifiers */
-	{Identifier}                   { return symbol(sym.IDENTIFIER); }
+
+	"main"			{ return symbol(sym.MAIN); }
+	"char"			{ return symbol(sym.CHAR); }
+
+	"bool"			{ return symbol(sym.BOOL); }
+
+	"!"			{ return symbol(sym.NOT); }
+	"&&"			{ return symbol(sym.AND); }
+	"||"			{ return symbol(sym.OR); }
+
+	"int"			{ return symbol(sym.INT); }
+	"float"			{ return symbol(sym.FLOAT); }
+	"rat"			{ return symbol(sym.RAT); }
+
+	"+"			{ return symbol(sym.PLUS); }
+	"-"			{ return symbol(sym.MINUS); }
+	"*"			{ return symbol(sym.TIMES); }
+	"/"			{ return symbol(sym.DIVIDE); }
+	"^"			{ return symbol(sym.EXPONENT); }
+
+	"dict"			{ return symbol(sym.DICT); }
+	"seq"			{ return symbol(sym.SEQ); }
+	"in"			{ return symbol(sym.IN); }
+	"d"			{ return symbol(sym.D); }
+	"len"			{ return symbol(sym.LEN); }
+	"::"			{ return symbol(sym.CONCATENATE); }
+	"s"			{ return symbol(sym.S); }
+	"<"			{ return symbol(sym.LESS); }
+	"<="			{ return symbol(sym.LESSEQ); }
+	">"			{ return symbol(sym.MORE); }
+	">="			{ return symbol(sym.MOREEQ); }
+	"=="			{ return symbol(sym.EQUAL); }
+	"!="			{ return symbol(sym.NOTEQUAL); }
+
+	"tdef"			{ return symbol(sym.TDEF); }
+	"fdef"			{ return symbol(sym.FDEF); }
+	"alias"			{ return symbol(sym.ALIAS); }
 	
-	/* literals */
-	{DecIntegerLiteral}            { return symbol(sym.INTEGER_LITERAL); }
-	\"                             { string.setLength(0); yybegin(STRING); }
+	{IDENTIFIER}		{ return symbol(sym.IDENTIFIER); }
+	{CHARACTER}		{ return symbol(sym.CHARACTER); }
+	{BOOLEAN_CONSTANT}	{ return symbol(sym.BOOLEAN_CONSTANT); }
 
-	//TODO
-	//main
+	{INTEGER}		{ return symbol(sym.INTEGER); }
+	{FLOATING_POINT}	{ return symbol(sym.FLOATING_POINT); }
+	{RATIONAL}		{ return symbol(sym.RATIONAL); }
 
-	//TODO
-	/* primitives */
-	//bool --> !, &&, ||
-	//int, rat, float --> +, _, *, /, ^
-	//char
+	"="			{ return symbol(sym.ASS); }
 
-	//TODO
-	/* aggregrate */
-	//dict --> in d len 
-	//seq --> in (above), ::, len (above), s
+	"."			{ return symbol(sym.DOT); }
 
-	//TODO
-	/* comparison */
-	// <, <=, == (below), !=
+	"if"			{ return symbol(sym.IF); }
+	"else"			{ return symbol(sym.ELSE); }
+	"while"			{ return symbol(sym.WHILE); }
+	"forall"		{ return symbol(sym.FORALL); }
+	"then"			{ return symbol(sym.THEN); }
+	"fi"			{ return symbol(sym.ENDIF); }
+	"elif"			{ return symbol(sym.ELSEIF); }
+	"do"			{ return symbol(sym.DO); }
+	"od"			{ return symbol(sym.ENDDO); }
+	"return"		{ return symbol(sym.RETURN); }
+	"read"			{ return symbol(sym.READ); }
+	"print"			{ return symbol(sym.PRINT); }
 
-	/* operators */
-	"="                            { return symbol(sym.EQ); }
-	"=="                           { return symbol(sym.EQEQ); }
-	"+"                            { return symbol(sym.PLUS); }
-	
-	//TODO
-	/* declarations */
-	//tdef, fdef, alias?
+	"("			{ return symbol(sym.OBRACKET); }
+	")"			{ return symbol(sym.CBRACKET); }
+	"["			{ return symbol(sym.OSQUAREBRACKET); }
+	"]"			{ return symbol(sym.CSQUAREBRACKET); }
+	"{"			{ return symbol(sym.OCURLYBRACKET); }
+	"}"			{ return symbol(sym.CCURLYBRACKET); }
 
-	//TODO
-	/* expressions */
-	//.
-
-	//TODO
-	/* statements */
-	//if, else, while, forall, then, fi, elif, do, od, return
-	//read, print
-
-	//TODO other characters - i.e. brackets, curly brackets, <, > anything that has been missed
+	","			{ return symbol(sym.COMMA); }
+	":"			{ return symbol(sym.COLON); }
+	";"			{ return symbol(sym.SEMICOLON); }
 
 	/* comments */
-	{Comment}                      { /* ignore */ }
+	{COMMENT}		{ /* ignore */ }
 	
 	/* whitespace */
-	{WhiteSpace}                   { /* ignore */ }
+	{WHITESPACE}		{ /* ignore */ }
 }
 
-<STRING> {
-	\"                             { yybegin(YYINITIAL);
-					 return symbol(sym.STRING_LITERAL,
-					 string.toString()); }
-	[^\n\r\"\\]+                   { string.append( yytext() ); }
-	\\t                            { string.append('\t'); }
-	\\n                            { string.append('\n'); }
-	
-	\\r                            { string.append('\r'); }
-	\\\"                           { string.append('\"'); }
-	\\                             { string.append('\\'); }
-}
-
-/* error fallback */
-[^]			{ throw new Error("Illegal character <"+yytext()+">"); }
+[^]				{ throw new Error("Illegal character <"+yytext()+">"); }
