@@ -132,6 +132,13 @@ public class Parser extends java_cup.runtime.lr_parser {
  return scanner.next_token(); 
     }
 
+
+	public void syntax_error(Symbol current_token) { 
+		report_error( "Syntax error at line " + (current_token.left+1) + ", column " + current_token.right, null );
+	}
+
+
+
 /** Cup generated class to encapsulate user supplied action code.*/
 @SuppressWarnings({"rawtypes", "unchecked", "unused"})
 class CUP$Parser$actions {

@@ -1,11 +1,17 @@
+//Yee Chong Tan, Theo Turner, Jasmine Lu
+
+//user code
 import java_cup.runtime.*;
 
 %%
+
+//JLex directives
+
 %class Lexer
 %unicode
 %cup
 %line
-%column
+%column 
 
 %{
 	StringBuffer string = new StringBuffer();
@@ -21,18 +27,30 @@ LineTerminator = \r|\n|\r\n
 InputCharacter = [^\r\n]
 WhiteSpace     = {LineTerminator} | [ \t\f]
 
+//TODO 
+//define letter, punctuation, digit (which are char)
+
+//TODO check declarations for comments
 /* comments */
 Comment = {MultiLineComment} | {NormalComment}
 MultiLineComment   = "/#" [^*] ~"#/"
 NormalComment     = "/#" {InputCharacter}* {LineTerminator}?
 
+//TODO check declaration for identifier
+IDENTIFIER  = {LETTER}({LETTER}|{DIGIT}|"_")*
+//OR??
 Identifier = [:jletter:] [:jletterdigit:]* /* NEED UNDERSCORES */
 
+//TODO check this declaration/ what is it?? (can't find this in spec)
 DecIntegerLiteral = 0 | [1-9][0-9]*
 
 %state STRING
 
 %%
+
+//regular expression rules
+
+//TODO what are keywords for?
 /* keywords */
 <YYINITIAL> "abstract"           { return symbol(sym.ABSTRACT); }
 <YYINITIAL> "boolean"            { return symbol(sym.BOOLEAN); }
@@ -45,12 +63,45 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 	/* literals */
 	{DecIntegerLiteral}            { return symbol(sym.INTEGER_LITERAL); }
 	\"                             { string.setLength(0); yybegin(STRING); }
-	
+
+	//TODO
+	//main
+
+	//TODO
+	/* primitives */
+	//bool --> !, &&, ||
+	//int, rat, float --> +, _, *, /, ^
+	//char
+
+	//TODO
+	/* aggregrate */
+	//dict --> in d len 
+	//seq --> in (above), ::, len (above), s
+
+	//TODO
+	/* comparison */
+	// <, <=, == (below), !=
+
 	/* operators */
 	"="                            { return symbol(sym.EQ); }
 	"=="                           { return symbol(sym.EQEQ); }
 	"+"                            { return symbol(sym.PLUS); }
 	
+	//TODO
+	/* declarations */
+	//tdef, fdef, alias?
+
+	//TODO
+	/* expressions */
+	//.
+
+	//TODO
+	/* statements */
+	//if, else, while, forall, then, fi, elif, do, od, return
+	//read, print
+
+	//TODO other characters - i.e. brackets, curly brackets, <, > anything that has been missed
+
 	/* comments */
 	{Comment}                      { /* ignore */ }
 	
@@ -72,5 +123,4 @@ DecIntegerLiteral = 0 | [1-9][0-9]*
 }
 
 /* error fallback */
-[^]                              { throw new Error("Illegal character <"+
-						    yytext()+">"); }
+[^]			{ throw new Error("Illegal character <"+yytext()+">"); }
