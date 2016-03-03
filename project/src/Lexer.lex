@@ -25,7 +25,7 @@ import java_cup.runtime.*;
 
 LINE_TERMINATOR 	= [\r|\n|\r\n]
 INPUT_CHARACTER 	= [^\r\n]
-WHITESPACE 		= {LINETERMINATOR}|[ \t\r\n]
+WHITESPACE 		= {LINE_TERMINATOR}|[ \t\r\n]
 LETTER 			= [a-zA-Z]
 PUNCTUATION 	= " "|[!-&]|[(-~]
 CHARACTER 		= "’"{LETTER}|{PUNCTUATION}|{DIGIT}"’"
@@ -55,7 +55,7 @@ IDENTIFIER  = {LETTER}({LETTER}|{DIGIT}|"_")*
 
 	"bool"			{ return symbol(sym.BOOL); }
 
-	"!"			{ return symbol(sym.NOT); }
+	"!"				{ return symbol(sym.NOT); }
 	"&&"			{ return symbol(sym.AND); }
 	"||"			{ return symbol(sym.OR); }
 
@@ -63,22 +63,22 @@ IDENTIFIER  = {LETTER}({LETTER}|{DIGIT}|"_")*
 	"float"			{ return symbol(sym.FLOAT); }
 	"rat"			{ return symbol(sym.RAT); }
 
-	"+"			{ return symbol(sym.PLUS); }
-	"-"			{ return symbol(sym.MINUS); }
-	"*"			{ return symbol(sym.TIMES); }
-	"/"			{ return symbol(sym.DIVIDE); }
-	"^"			{ return symbol(sym.EXPONENT); }
+	"+"				{ return symbol(sym.PLUS); }
+	"-"				{ return symbol(sym.MINUS); }
+	"*"				{ return symbol(sym.TIMES); }
+	"/"				{ return symbol(sym.DIVIDE); }
+	"^"				{ return symbol(sym.EXPONENT); }
 
 	"dict"			{ return symbol(sym.DICT); }
 	"seq"			{ return symbol(sym.SEQ); }
 	"in"			{ return symbol(sym.IN); }
-	"d"			{ return symbol(sym.D); }
+	"d"				{ return symbol(sym.D); }
 	"len"			{ return symbol(sym.LEN); }
 	"::"			{ return symbol(sym.CONCATENATE); }
-	"s"			{ return symbol(sym.S); }
-	"<"			{ return symbol(sym.LESS); }
+	"s"				{ return symbol(sym.S); }
+	"<"				{ return symbol(sym.LESS); }
 	"<="			{ return symbol(sym.LESSEQ); }
-	">"			{ return symbol(sym.MORE); }
+	">"				{ return symbol(sym.MORE); }
 	">="			{ return symbol(sym.MOREEQ); }
 	"=="			{ return symbol(sym.EQUAL); }
 	"!="			{ return symbol(sym.NOTEQUAL); }
@@ -87,7 +87,7 @@ IDENTIFIER  = {LETTER}({LETTER}|{DIGIT}|"_")*
 	"fdef"			{ return symbol(sym.FDEF); }
 	"alias"			{ return symbol(sym.ALIAS); }
 	
-	{IDENTIFIER}		{ return symbol(sym.IDENTIFIER); }
+	{IDENTIFIER}	{ return symbol(sym.IDENTIFIER); }
 	{CHARACTER}		{ return symbol(sym.CHARACTER); }
 	{BOOLEAN_CONSTANT}	{ return symbol(sym.BOOLEAN_CONSTANT); }
 
@@ -95,9 +95,9 @@ IDENTIFIER  = {LETTER}({LETTER}|{DIGIT}|"_")*
 	{FLOATING_POINT}	{ return symbol(sym.FLOATING_POINT); }
 	{RATIONAL}		{ return symbol(sym.RATIONAL); }
 
-	"="			{ return symbol(sym.ASS); }
+	"="				{ return symbol(sym.ASS); }
 
-	"."			{ return symbol(sym.DOT); }
+	"."				{ return symbol(sym.DOT); }
 
 	"if"			{ return symbol(sym.IF); }
 	"else"			{ return symbol(sym.ELSE); }
@@ -112,22 +112,22 @@ IDENTIFIER  = {LETTER}({LETTER}|{DIGIT}|"_")*
 	"read"			{ return symbol(sym.READ); }
 	"print"			{ return symbol(sym.PRINT); }
 
-	"("			{ return symbol(sym.OBRACKET); }
-	")"			{ return symbol(sym.CBRACKET); }
-	"["			{ return symbol(sym.OSQUAREBRACKET); }
-	"]"			{ return symbol(sym.CSQUAREBRACKET); }
-	"{"			{ return symbol(sym.OCURLYBRACKET); }
-	"}"			{ return symbol(sym.CCURLYBRACKET); }
+	"("				{ return symbol(sym.OBRACKET); }
+	")"				{ return symbol(sym.CBRACKET); }
+	"["				{ return symbol(sym.OSQUAREBRACKET); }
+	"]"				{ return symbol(sym.CSQUAREBRACKET); }
+	"{"				{ return symbol(sym.OCURLYBRACKET); }
+	"}"				{ return symbol(sym.CCURLYBRACKET); }
 
-	","			{ return symbol(sym.COMMA); }
-	":"			{ return symbol(sym.COLON); }
-	";"			{ return symbol(sym.SEMICOLON); }
+	","				{ return symbol(sym.COMMA); }
+	":"				{ return symbol(sym.COLON); }
+	";"				{ return symbol(sym.SEMICOLON); }
 
 	/* comments */
 	{COMMENT}		{ /* ignore */ }
 	
 	/* whitespace */
-	{WHITESPACE}		{ /* ignore */ }
+	{WHITESPACE}	{ /* ignore */ }
 }
 
 [^]				{ throw new Error("Illegal character <"+yytext()+">"); }

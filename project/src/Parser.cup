@@ -13,10 +13,23 @@ parser code
 init with {: scanner.init();              :};
 scan with {: return scanner.next_token(); :};
 
+
+
 /* Terminals */
-terminal            SEMI, PLUS, MINUS, TIMES, DIVIDE, MOD;
-terminal            UMINUS, LPAREN, RPAREN;
-terminal Integer    NUMBER;
+terminal 			MAIN, CHAR, BOOL;
+terminal 			NOT, AND, OR;
+terminal 			INT, FLOAT, RAT;
+terminal 			PLUS, MINUS, TIMES, DIVIDE, EXPONENT;
+terminal 			DICT, SEQ;
+terminal 			IN, D, LEN, CONCATENATE, S, LESS, LESSEQ, MORE, MOREEQ, EQUAL, NOTEQUAL;
+terminal 			TDEF, FDEF, ALIAS;
+terminal 			IDENTIFIER, CHARACTER, BOOLEAN_CONSTANT;
+terminal 			INTEGER, FLOATING_POINT, RATIONAL;
+terminal 			ASS;
+terminal 			DOT;
+terminal 			IF, ELSE, WHILE, FORALL, THEN, ENDIF, ELSIF, DO, ENDDO, RETURN, READ, PRINT;
+terminal 			OBRACKET, CBRACKET, OSQUAREBRACKET, CSQUAREBRACKET, OCURLYBRACKET, CCURLYBRACKET;
+terminal 			COMMA, COLON, SEMICOLON;
 
 /* Nonterminals */
 non terminal            expr_list, expr_part;
@@ -24,8 +37,7 @@ non terminal Integer    expr, term, factor;
 
 /* Precedence */
 precedence left PLUS, MINUS;
-precedence left TIMES, DIVIDE, MOD;
-precedence left UMINUS;
+precedence left TIMES, DIVIDE;
 
 /* Grammar */
 expr_list ::= expr_list expr_part | 
@@ -36,7 +48,7 @@ expr      ::= expr PLUS expr
             | expr TIMES expr  
             | expr DIVIDE expr  
             | expr MOD expr 
-	    | MINUS expr %prec UMINUS
+	    | MINUS expr %prec MINUS
             | LPAREN expr RPAREN
 	    | NUMBER
 	    ;
