@@ -70,6 +70,7 @@ IDENTIFIER  = {LETTER}({LETTER}|{DIGIT}|"_")*
 	"^"				{ return symbol(sym.EXPONENT); }
 
 	"dict"			{ return symbol(sym.DICT); }
+	"top"			{ return symbol(sym.TOP); }
 	"seq"			{ return symbol(sym.SEQ); }
 	"in"			{ return symbol(sym.IN); }
 	"d"				{ return symbol(sym.D); }
@@ -85,6 +86,8 @@ IDENTIFIER  = {LETTER}({LETTER}|{DIGIT}|"_")*
 
 	"tdef"			{ return symbol(sym.TDEF); }
 	"fdef"			{ return symbol(sym.FDEF); }
+	"void"			{ return symbol(sym.VOID); }
+
 	"alias"			{ return symbol(sym.ALIAS); }
 	
 	{IDENTIFIER}	{ return symbol(sym.IDENTIFIER); }
