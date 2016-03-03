@@ -44,6 +44,7 @@ non terminal			if_else, while_do, for_all;
 non terminal			code_block, in_code_block;
 non terminal			alias;
 non terminal			expression_list, expression;
+non terminal			return_expression;
 
 /* Precedence */
 precedence left PLUS, MINUS, TIMES, DIVIDE, AND, OR, CONCATENATE, DOT;
@@ -88,13 +89,13 @@ statement			::= assignment_statement
 				| statement_list
 				;
 
-assignment_statement		::= ID ASS expression_list
+assignment_statement		::= ID ASS expression_list SEMICOLON
 				;
 
-input_statement			::= READ ID
+input_statement			::= READ ID SEMICOLON
 				;
 
-output_statement		::= PRINT expression_list
+output_statement		::= PRINT expression_list SEMICOLON
 				;
 
 global_declaration_list		::= global_declaration global_declaration_list
@@ -108,7 +109,7 @@ global_declaration		::= variable_declaration_list
 				;
 
 type_declaration		::= TDEF ID OCURLYBRACKET type_declaration_list CCURLYBRACKET SEMICOLON
-				| TDEF ID
+				| TDEF ID SEMICOLON
 				;
 
 type_declaration_list		::= type_id ID
@@ -137,7 +138,7 @@ dictionary_declaration_list	::= literal COLON literal COMMA dictionary_declarati
 sequence			::= SEQ LESS type_id MORE
 				;
 
-sequence_declaration		::= sequence ID ASS OSQUAREBRACKET expression_list CSQUAREBRACKET
+sequence_declaration		::= sequence ID ASS OSQUAREBRACKET expression_list CSQUAREBRACKET SEMICOLON
 				;
 
 function_declaration		::= FDEF type_id ID OBRACKET parameter_list CBRACKET OCURLYBRACKET code_block CCURLYBRACKET SEMICOLON
@@ -192,7 +193,8 @@ expression			::= expression PLUS expression
 				| literal
 				;
 
-function_call			::= ID OBRACKET expression_list CBRACKET
+function_call			::= ID OBRACKET expression_list CBRACKET SEMICOLON
+				;
 
 sequence_slice			::= S OSQUAREBRACKET expression CSQUAREBRACKET
 				| S OSQUAREBRACKET expression COLON expression CSQUAREBRACKET
@@ -212,4 +214,22 @@ literal				::= INTEGER
 dictionary			::= DICT LESS type_id COMMA type_id MORE
 				;
 
-//TODO LOOPS
+if_else				::= IF OBRACKET expression CBRACKET THEN in_code_block ELSE in_code_block ENDIF
+				| IF OBRACKET expression CBRACKET THEN in_code_block ENDIF
+				| IF OBRACKET expression CBRACKET THEN in_code_block else_if_list ELSE in_code_block ENDIF
+				| IF OBRACKET expression CBRACKET THEN in_code_block else_if_list ENDIF
+				;
+
+else_if_list			::= ELSEIF OBRACKET expression CBRACKET THEN in_code_block else_if_list
+				| ELSEIF OBRACKET expression CBRACKET THEN in_code_block
+				;
+
+while_do			::= WHILE OBRACKET expression CBRACKET DO in_code_block ENDDO
+				;
+
+for_all				::= FORALL OBRACKET ID in ID CBRACKET DO in_code_block ENDDO
+				;
+
+return_expression		::= RETURN expression SEMICOLON
+				| RETURN SEMICOLON
+				;
