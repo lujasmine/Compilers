@@ -1,3 +1,4 @@
 AMBIGUITIES
 
-Must have return always
+can't assign multiple variables in one go
+i.e. cannot do int a,b,c = 2;

@@ -30,7 +30,7 @@ terminal      OBRACKET, CBRACKET, OSQUAREBRACKET, CSQUAREBRACKET, OCURLYBRACKET,
 terminal      COMMA, COLON, SEMICOLON, VOID;
 
 /* Nonterminals */
-non terminal      program, declaration_list, main, body, bodyobj;
+non terminal      program, declaration_list, main, body;
 non terminal      global_declaration_list;
 non terminal      declaration, statement_list, statement;
 non terminal      type_declaration, type_declaration_list, alias, type_id;
@@ -50,7 +50,7 @@ precedence left FDEF, TDEF;
 precedence right EXPONENT, IN;
 precedence left  LESS, LESSEQ, MORE, MOREEQ, EQUAL, NOTEQUAL;
 precedence left IF, WHILE, FORALL, ELSEIF, RETURN, READ, PRINT;
-precedence left OBRACKET, CBRACKET;
+precedence left OBRACKET, CBRACKET, CSQUAREBRACKET, SEMICOLON;
 
 
 /* Grammar */
@@ -77,12 +77,8 @@ declaration   ::= type_declaration
 
 main      ::= MAIN OCURLYBRACKET body CCURLYBRACKET SEMICOLON;
 
-body      ::= bodyobj body
-            | bodyobj
-            ;
-
-bodyobj ::= statement_list
-          | declaration_list;
+body      ::= declaration_list statement_list
+          | statement_list;
 
 statement_list  ::= statement statement_list
         | statement;
@@ -105,7 +101,7 @@ formal_parameter_list ::= type_declaration_list
 alias       ::= ALIAS type_id type_id SEMICOLON;
 
 assignment  ::= ID ASS expression_list SEMICOLON
-            | field_ref ASS expression_list SEMICOLON;
+            | field_ref ASS expression_list;
 
 variable_declaration  ::= type_id ID ASS expression_list SEMICOLON
             | type_id ID SEMICOLON;
@@ -130,12 +126,14 @@ dictionary_values   ::= ID COLON dictionary_values
 sequence  ::= SEQ LESS type_id MORE;
 
 sequence_declaration  ::= sequence ID ASS sequence_second_part SEMICOLON
-                      | sequence ID ASS function_call SEMICOLON;
+                      | sequence ID ASS function_call SEMICOLON
+                      | sequence ID ASS expression SEMICOLON
+                      | sequence ID SEMICOLON;
 
 sequence_second_part  ::= OSQUAREBRACKET sequence_values CSQUAREBRACKET;
 
-sequence_values     ::= literal COMMA sequence_values
-            | literal
+sequence_values     ::= expression COMMA sequence_values
+            | expression
             | /* empty */
             ;
 
@@ -163,6 +161,7 @@ expression    ::= expression operator expression
               | LEN OBRACKET expression CBRACKET
               | OBRACKET expression CBRACKET
               | ID sequence_slicing
+              | sequence_object
               | indexing
               | literal
               | field_ref
