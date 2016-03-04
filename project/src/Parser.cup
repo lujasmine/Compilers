@@ -5,170 +5,136 @@ import java_cup.runtime.*;
 parser code
 {:
 	public void syntax_error(Symbol current_token) { 
+		syntaxErrors = true;
 		report_error( "Syntax error at line " + (current_token.left+1) + ", column " + current_token.right, null );
 	}
 
+	public boolean syntaxErrors = false;
+
 :}
-
-scan with {: return scanner.next_token(); :};
-
-
 
 /* Terminals */
 terminal 			MAIN, CHAR, BOOL;
 terminal 			NOT, AND, OR;
-terminal 			INT, FLOAT, RAT;
+terminal 			INT, FLOAT, RAT, TOP, STRING;
 terminal 			PLUS, MINUS, TIMES, DIVIDE, EXPONENT;
 terminal 			DICT, SEQ;
-terminal 			IN, D, LEN, CONCATENATE, S, LESS, LESSEQ, MORE, MOREEQ, EQUAL, NOTEQUAL;
+terminal 			IN, D, LEN, CONCATENATE, LESS, LESSEQ, MORE, MOREEQ, EQUAL, NOTEQUAL;
 terminal 			TDEF, FDEF, ALIAS;
-terminal 			IDENTIFIER, CHARACTER, BOOLEAN_CONSTANT;
+terminal 			ID, CHARACTER, BOOLEAN_CONSTANT;
 terminal 			INTEGER, FLOATING_POINT, RATIONAL;
 terminal 			ASS;
 terminal 			DOT;
-terminal 			IF, ELSE, WHILE, FORALL, THEN, ENDIF, ELSIF, DO, ENDDO, RETURN, READ, PRINT;
+terminal 			IF, ELSE, WHILE, FORALL, THEN, ENDIF, ELSEIF, DO, ENDDO, RETURN, READ, PRINT;
 terminal 			OBRACKET, CBRACKET, OSQUAREBRACKET, CSQUAREBRACKET, OCURLYBRACKET, CCURLYBRACKET;
-terminal 			COMMA, COLON, SEMICOLON;
+terminal 			COMMA, COLON, SEMICOLON, VOID;
 
 /* Nonterminals */
-non terminal			program, main;
-non terminal			global_declaration, global_declaration_list, type_declaration, type_declaration_list, declaration_list;
-non terminal			function_declaration, function_call, method_call;
-non terminal			variable_declaration, variable_declaration_list;
-non terminal			statement, assignment_statement, input_statement, output_statement, statement_list;
-non terminal			parameter_list;
-non terminal			type_id, literal, literal_list, id_list;
-non terminal			sequence, sequence_list, sequence_slice, sequence_declaration;
-non terminal			dictionary, dictionary_declaration_list, dictionary_declaration;
-non terminal			if_else, while_do, for_all;
-non terminal			code_block, in_code_block;
-non terminal			alias;
-non terminal			expression_list, expression;
-non terminal			return_expression;
+non terminal			program, declaration_list, main, body;
+non terminal 			global_declaration_list;
+non terminal 			declaration, statement_list, statement;
+non terminal 			type_declaration, type_declaration_list, alias, type_id;
+non terminal 			function_declaration, formal_parameter_list;
+non terminal 			variable_declaration, lit_list, literal;
+non terminal 			dictionary, dictionary_declaration, dictionary_values;
+non terminal 			sequence, sequence_declaration, sequence_values;
+non terminal 			indexing, sequence_slicing;
+non terminal 			expression, expression_list, field_ref;
+non terminal 			input, output, function_call, return;
+non terminal 			loops, if_else, else_if_list, while_do, for_all;
+
 
 /* Precedence */
 precedence left PLUS, MINUS, TIMES, DIVIDE, AND, OR, CONCATENATE, DOT;
 precedence right EXPONENT, IN;
 precedence nonassoc NOT, LESS, LESSEQ, MORE, MOREEQ, EQUAL, NOTEQUAL;
+precedence nonassoc RETURN, READ, PRINT, ID, ELSEIF, WHILE, IF, FORALL;
+precedence left OBRACKET, CBRACKET;
 
 
 /* Grammar */
 
 start with program;
 
-program				::= global_declaration_list main global_declaration_list {: :}
-				;
+program     ::= global_declaration_list main global_declaration_list;
 
-main				::= MAIN code_block SEMICOLON
-				;
+global_declaration_list 	::= declaration_list
+							| /* empty */
+							;
 
-code_block			::= OCURLYBRACKET in_code_block CCURLYBRACKET
-				;
+declaration_list    ::= declaration declaration_list
+            | declaration
+            ;
 
-in_code_block			::= declaration_list statement_list
-				| declaration_list
-				| statement_list
-				;
+declaration   ::= type_declaration
+        | function_declaration
+        | alias
+        | variable_declaration
+        | sequence_declaration
+        | dictionary_declaration;
 
-declaration_list		::= declaration COMMA declaration_list
-				| declaration
-				;
+main      ::= MAIN OCURLYBRACKET body CCURLYBRACKET;
 
-declaration			::= variable_declaration
-				| type_declaration
-				| alias
-				;
+body      ::= statement_list
+        | declaration_list
+        | declaration_list statement_list;
 
-statement_list			::= statement COMMA statement_list
-				| statement
-				;
+statement_list  ::= statement statement_list
+        | statement;
 
-statement			::= assignment_statement
-				| input_statement
-				| output_statement
-				| statement_list
-				;
+type_declaration    ::= TDEF type_id OCURLYBRACKET type_declaration_list CCURLYBRACKET SEMICOLON;
 
-assignment_statement		::= ID ASS expression_list SEMICOLON
-				;
+type_declaration_list ::= type_id ID COMMA type_declaration_list SEMICOLON
+            | type_id ID SEMICOLON;
 
-input_statement			::= READ ID SEMICOLON
-				;
+type_id     ::= BOOL | INT | RAT | FLOAT | CHAR | TOP | ID | dictionary | sequence;
 
-output_statement		::= PRINT expression_list SEMICOLON
-				;
+function_declaration  ::= FDEF VOID ID OBRACKET formal_parameter_list CBRACKET OCURLYBRACKET body CCURLYBRACKET SEMICOLON
+            | FDEF type_id ID OBRACKET formal_parameter_list CBRACKET OCURLYBRACKET body CCURLYBRACKET SEMICOLON;
 
-global_declaration_list		::= global_declaration global_declaration_list
-				|
-				;
+formal_parameter_list ::= type_declaration_list
+            | /* empty */
+            ;
 
-global_declaration		::= variable_declaration_list
-				| type_declaration
-				| function_declaration
-				| alias
-				;
+alias       ::= ALIAS type_id type_id SEMICOLON;
 
-type_declaration		::= TDEF ID OCURLYBRACKET type_declaration_list CCURLYBRACKET SEMICOLON
-				| TDEF ID SEMICOLON
-				;
+variable_declaration  ::= type_id ID ASS lit_list SEMICOLON
+            | type_id ID SEMICOLON;
 
-type_declaration_list		::= type_id ID
-				| type_id ID COMMA type_declaration_list
-				;
+lit_list    ::= literal COMMA lit_list
+        	| literal;
 
-type_id				::= INT
-				| FLOAT
-				| RAT
-				| CHAR
-				| BOOL
-				| dictionary_declaration
-				| sequence_declaration
-				| TOP
-				;
+literal     ::= CHARACTER | BOOLEAN_CONSTANT | INTEGER | FLOATING_POINT | RATIONAL | ID | STRING;
 
-dictionary_declaration		::= dictionary ID ASS OCURLYBRACKET dictionary_declaration_list CCURLYBRACKET SEMICOLON
-				| dictionary ID SEMICOLON
-				;
+dictionary 	::= DICT LESS type_id COMMA type_id MORE;
 
-dictionary_declaration_list	::= literal COLON literal COMMA dictionary_declaration_list
-				| literal COLON literal
-				|
-				;
+dictionary_declaration 	::= dictionary ID ASS OCURLYBRACKET dictionary_values CCURLYBRACKET SEMICOLON;
 
-sequence			::= SEQ LESS type_id MORE
-				;
+dictionary_values		::= ID COLON dictionary_values
+						| ID COLON ID
+						| /* empty */
+						;
 
-sequence_declaration		::= sequence ID ASS OSQUAREBRACKET expression_list CSQUAREBRACKET SEMICOLON
-				;
+sequence	::= SEQ LESS type_id MORE;
 
-function_declaration		::= FDEF type_id ID OBRACKET parameter_list CBRACKET OCURLYBRACKET code_block CCURLYBRACKET SEMICOLON
-				;
+sequence_declaration	::= sequence ID ASS OSQUAREBRACKET sequence_values CSQUAREBRACKET SEMICOLON;
 
-parameter_list			::= type_declaration_list
-				| id_list
-				;
+sequence_values			::= literal COMMA sequence_values
+						| literal
+						| /* empty */
+						;
 
-id_list				::= ID COMMA id_list
-				| ID
-				;
+indexing	::= LEN OBRACKET ID CBRACKET;
 
-alias				::= ALIAS ID ID SEMICOLON
-				| ALIAS type_id type_id SEMICOLON
-				;
+sequence_slicing 		::= ID OSQUAREBRACKET expression COLON expression CSQUAREBRACKET
+						| ID OSQUAREBRACKET expression COLON CSQUAREBRACKET 
+						| ID OSQUAREBRACKET COLON expression CSQUAREBRACKET
+						| ID OSQUAREBRACKET expression CSQUAREBRACKET;
 
-variable_declaration_list	::= variable_declaration variable_declaration_list
-				| variable_declaration
-				;
+expression_list 		::= expression COMMA expression_list
+						| expression;
 
-variable_declaration		::= type_id ID SEMICOLON
-				| type_id assignment_statement SEMICOLON;
-				;
-
-expression_list			::= expression COMMA expression_list
-				| expression
-				;
-
-expression			::= expression PLUS expression
+expression 		::= expression PLUS expression
 				| expression MINUS expression
 				| expression TIMES expression
 				| expression DIVIDE expression
@@ -189,47 +155,42 @@ expression			::= expression PLUS expression
 				| expression NOTEQUAL expression
 				| OBRACKET expression CBRACKET
 				| function_call
-				| sequence_slice
+				| sequence_slicing
+				| indexing
 				| literal
+				| field_ref
+				| return
 				;
 
-function_call			::= ID OBRACKET expression_list CBRACKET SEMICOLON
+field_ref 		::= ID DOT ID
+				| ID DOT field_ref;
+
+statement 		::= input | output | function_call | return | loops;
+
+input			::= READ ID SEMICOLON;
+
+output			::= PRINT expression SEMICOLON;
+
+function_call 	::= ID OBRACKET expression_list CBRACKET SEMICOLON;
+
+return 			::= RETURN expression_list SEMICOLON
+				| RETURN SEMICOLON;
+
+loops 			::= if_else | else_if_list | while_do | for_all;
+
+
+if_else			::= IF OBRACKET expression CBRACKET THEN body ELSE body ENDIF
+				| IF OBRACKET expression CBRACKET THEN body ENDIF
+				| IF OBRACKET expression CBRACKET THEN body else_if_list ELSE body ENDIF
+				| IF OBRACKET expression CBRACKET THEN body else_if_list ENDIF
 				;
 
-sequence_slice			::= S OSQUAREBRACKET expression CSQUAREBRACKET
-				| S OSQUAREBRACKET expression COLON expression CSQUAREBRACKET
-				| S OSQUAREBRACKET expression COLON CSQUAREBRACKET
-				| S OSQUAREBRACKET COLON expression CSQUAREBRACKET
+else_if_list	::= ELSEIF OBRACKET expression CBRACKET THEN body else_if_list
+				| ELSEIF OBRACKET expression CBRACKET THEN body
 				;
 
-literal				::= INTEGER
-				| FLOATING_POINT
-				| RATIONAL
-				| CHARACTER
-				| BOOLEAN_CONSTANT
-				| dictionary
-				| sequence
+while_do		::= WHILE OBRACKET expression CBRACKET DO body ENDDO
 				;
 
-dictionary			::= DICT LESS type_id COMMA type_id MORE
-				;
-
-if_else				::= IF OBRACKET expression CBRACKET THEN in_code_block ELSE in_code_block ENDIF
-				| IF OBRACKET expression CBRACKET THEN in_code_block ENDIF
-				| IF OBRACKET expression CBRACKET THEN in_code_block else_if_list ELSE in_code_block ENDIF
-				| IF OBRACKET expression CBRACKET THEN in_code_block else_if_list ENDIF
-				;
-
-else_if_list			::= ELSEIF OBRACKET expression CBRACKET THEN in_code_block else_if_list
-				| ELSEIF OBRACKET expression CBRACKET THEN in_code_block
-				;
-
-while_do			::= WHILE OBRACKET expression CBRACKET DO in_code_block ENDDO
-				;
-
-for_all				::= FORALL OBRACKET ID in ID CBRACKET DO in_code_block ENDDO
-				;
-
-return_expression		::= RETURN expression SEMICOLON
-				| RETURN SEMICOLON
+for_all			::= FORALL OBRACKET ID IN ID CBRACKET DO body ENDDO
 				;
