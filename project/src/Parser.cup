@@ -19,7 +19,7 @@ terminal      NOT, AND, OR;
 terminal      INT, FLOAT, RAT, TOP, STRING;
 terminal      PLUS, MINUS, TIMES, DIVIDE, EXPONENT;
 terminal      DICT, SEQ;
-terminal      IN, D, LEN, CONCATENATE, LESS, LESSEQ, MORE, MOREEQ, EQUAL, NOTEQUAL;
+terminal      IN, LEN, CONCATENATE, LESS, LESSEQ, MORE, MOREEQ, EQUAL, NOTEQUAL;
 terminal      TDEF, FDEF, ALIAS;
 terminal      ID, CHARACTER, BOOLEAN_CONSTANT;
 terminal      INTEGER, FLOATING_POINT, RATIONAL;
@@ -30,7 +30,7 @@ terminal      OBRACKET, CBRACKET, OSQUAREBRACKET, CSQUAREBRACKET, OCURLYBRACKET,
 terminal      COMMA, COLON, SEMICOLON, VOID;
 
 /* Nonterminals */
-non terminal      program, declaration_list, main, body;
+non terminal      program, declaration_list, main, body, bodyobj;
 non terminal      global_declaration_list;
 non terminal      declaration, statement_list, statement;
 non terminal      type_declaration, type_declaration_list, alias, type_id;
@@ -38,17 +38,18 @@ non terminal      function_declaration, formal_parameter_list;
 non terminal      variable_declaration, literal;
 non terminal      dictionary, dictionary_declaration, dictionary_values, dictionary_second_part;
 non terminal      sequence, sequence_declaration, sequence_values, sequence_second_part;
-non terminal      indexing, sequence_slicing, assignment;
+non terminal      indexing, sequence_slicing, sequence_object, assignment;
 non terminal      expression, expression_list, field_ref;
 non terminal      input, output, function_call, return_expr;
-non terminal      loops, if_else, else_if_list, while_do, for_all, id_list;
-
+non terminal      loops, if_else, else_if_list, while_do, for_all, id_list, operator;
 
 /* Precedence */
-precedence left PLUS, MINUS, TIMES, DIVIDE, AND, OR, CONCATENATE, DOT;
+precedence left ID, PLUS, MINUS, TIMES, DIVIDE, AND, OR, COLON, CONCATENATE, DOT;
+precedence left CHAR, BOOL, INT, FLOAT, TOP, DICT, SEQ, RAT, ALIAS;
+precedence left FDEF, TDEF;
 precedence right EXPONENT, IN;
-precedence nonassoc NOT, LESS, LESSEQ, MORE, MOREEQ, EQUAL, NOTEQUAL;
-precedence nonassoc RETURN, READ, PRINT, ID, ELSEIF, WHILE, IF, FORALL;
+precedence left  LESS, LESSEQ, MORE, MOREEQ, EQUAL, NOTEQUAL;
+precedence left IF, WHILE, FORALL, ELSEIF, RETURN, READ, PRINT;
 precedence left OBRACKET, CBRACKET;
 
 
@@ -62,23 +63,26 @@ global_declaration_list   ::= declaration_list
               | /* empty */
               ;
 
-declaration_list    ::= declaration declaration_list
+declaration_list ::= declaration declaration_list
             | declaration
             ;
 
-declaration   ::= type_declaration
-        | function_declaration
-        | alias
+declaration   ::= type_declaration        
         | variable_declaration
+        | function_declaration
+        | assignment SEMICOLON
+        | alias
         | sequence_declaration
-        | dictionary_declaration
-        | assignment SEMICOLON;
+        | dictionary_declaration;
 
 main      ::= MAIN OCURLYBRACKET body CCURLYBRACKET SEMICOLON;
 
-body      ::= statement_list
-        | declaration_list
-        | declaration_list statement_list;
+body      ::= bodyobj body
+            | bodyobj
+            ;
+
+bodyobj ::= statement_list
+          | declaration_list;
 
 statement_list  ::= statement statement_list
         | statement;
@@ -100,8 +104,8 @@ formal_parameter_list ::= type_declaration_list
 
 alias       ::= ALIAS type_id type_id SEMICOLON;
 
-assignment  ::= ID ASS expression_list
-            | field_ref ASS expression_list;
+assignment  ::= ID ASS expression_list SEMICOLON
+            | field_ref ASS expression_list SEMICOLON;
 
 variable_declaration  ::= type_id ID ASS expression_list SEMICOLON
             | type_id ID SEMICOLON;
@@ -125,63 +129,57 @@ dictionary_values   ::= ID COLON dictionary_values
 
 sequence  ::= SEQ LESS type_id MORE;
 
-sequence_declaration  ::= sequence ID ASS sequence_second_part SEMICOLON;
+sequence_declaration  ::= sequence ID ASS sequence_second_part SEMICOLON
+                      | sequence ID ASS function_call SEMICOLON;
 
 sequence_second_part  ::= OSQUAREBRACKET sequence_values CSQUAREBRACKET;
 
 sequence_values     ::= literal COMMA sequence_values
             | literal
+            | /* empty */
             ;
 
 indexing  ::= LEN OBRACKET ID CBRACKET;
 
-sequence_slicing    ::= ID OSQUAREBRACKET expression COLON expression CSQUAREBRACKET
-            | ID OSQUAREBRACKET expression COLON CSQUAREBRACKET 
-            | ID OSQUAREBRACKET COLON expression CSQUAREBRACKET
-            | ID OSQUAREBRACKET expression CSQUAREBRACKET;
+sequence_slicing    ::= sequence_object sequence_slicing
+                    | sequence_object;
+
+sequence_object ::=  OSQUAREBRACKET expression COLON expression CSQUAREBRACKET
+            | OSQUAREBRACKET expression COLON CSQUAREBRACKET 
+            | OSQUAREBRACKET COLON expression CSQUAREBRACKET
+            | OSQUAREBRACKET expression CSQUAREBRACKET;             
 
 expression_list     ::= expression COMMA expression_list
             | expression;
 
-expression    ::= expression PLUS expression
-              | expression MINUS expression
-              | expression TIMES expression
-              | expression DIVIDE expression
-              | expression EXPONENT expression
+operator ::= PLUS | MINUS | TIMES | DIVIDE | EXPONENT | CONCATENATE | AND | OR | IN | LESS | LESSEQ | MORE | MOREEQ| EQUAL | NOTEQUAL;
+
+expression    ::= expression operator expression
               | MINUS expression
               | NOT expression
               | expression AND expression
               | expression OR expression
               | expression IN expression
-              | D OSQUAREBRACKET expression CSQUAREBRACKET
               | LEN OBRACKET expression CBRACKET
-              | expression CONCATENATE expression
-              | expression LESS expression
-              | expression LESSEQ expression
-              | expression MORE expression
-              | expression MOREEQ expression
-              | expression EQUAL expression
-              | expression NOTEQUAL expression
               | OBRACKET expression CBRACKET
-              | function_call
-              | sequence_slicing
+              | ID sequence_slicing
               | indexing
               | literal
               | field_ref
+              | function_call
               | return_expr
-              | sequence ID
               ;
 
 field_ref     ::= ID DOT ID
         | ID DOT field_ref;
 
-statement     ::= input | output | function_call | return_expr | loops;
+statement     ::= input | output | function_call SEMICOLON| return_expr | loops | assignment;
 
 input     ::= READ ID SEMICOLON;
 
 output      ::= PRINT expression SEMICOLON;
 
-function_call   ::= ID OBRACKET expression_list CBRACKET SEMICOLON;
+function_call   ::= ID OBRACKET expression_list CBRACKET;
 
 return_expr      ::= RETURN expression SEMICOLON
         | RETURN SEMICOLON;

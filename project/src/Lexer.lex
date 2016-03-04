@@ -81,7 +81,6 @@ IDENTIFIER  = {LETTER}({LETTER}|{DIGIT}|"_")*
   "top"     { return symbol(sym.TOP); }
   "seq"     { return symbol(sym.SEQ); }
   "in"      { return symbol(sym.IN); }
-  "d"       { return symbol(sym.D); }
   "len"     { return symbol(sym.LEN); }
   "::"      { return symbol(sym.CONCATENATE); }
   "<"       { return symbol(sym.LESS); }
