@@ -3,485 +3,273 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.*;
 
-import org.apache.bcel.classfile.ClassParser;
-import org.apache.bcel.classfile.Code;
-import org.apache.bcel.classfile.JavaClass;
-import org.apache.bcel.classfile.Method;
-import org.apache.bcel.generic.ClassGen;
-import org.apache.bcel.generic.ConstantPoolGen;
-import org.apache.bcel.generic.InstructionHandle;
+import org.apache.bcel.classfile.*;
+import org.apache.bcel.generic.*;
+import org.apache.bcel.Repository;
 import org.apache.bcel.generic.InstructionList;
 import org.apache.bcel.util.InstructionFinder;
-import org.apache.bcel.generic.*;
 
-public class ConstantFolder
-{
-	ClassParser parser = null;
-	ClassGen gen = null;
+public class ConstantFolder {
 
-	JavaClass original = null;
-	JavaClass optimized = null;
+    ClassParser parser = null;
+    ClassGen gen = null;
 
-	ConstantPoolGen cpgen = null;
+    JavaClass original = null;
+    JavaClass optimized = null;
 
-	public ConstantFolder(String classFilePath)
-	{
-		try{
-			this.parser = new ClassParser(classFilePath);
-			this.original = this.parser.parse();
-			this.gen = new ClassGen(this.original);
-		} catch(IOException e){
-			e.printStackTrace();
-		}
-	}
+    ConstantPoolGen cpgen = null;
 
-	private void optimizeMethod(ClassGen cgen, ConstantPoolGen cpgen, Method method) {
-	
-		Code methodCode = method.getCode();
-		InstructionList instList = new InstructionList(methodCode.getCode());
-		MethodGen methodGen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), instList, cpgen);
+    public ConstantFolder(String classFilePath) {
+        try {
+            this.parser = new ClassParser(classFilePath);
+            this.original = this.parser.parse();
+            this.gen = new ClassGen(this.original);
+        } catch(IOException e){
+            e.printStackTrace();
+        }
+    }
 
-		for (InstructionHandle handle : instList.getInstructionHandles()) {
-			
-			if (handle.getInstruction() instanceof NOP) {
-                InstructionHandle handleDelete = handle;
-                handle = handle.getNext();
-                deleteInstruction(instList, handleDelete);
-                instList.setPositions();
-			} 
-			else if (handle.getInstruction() instanceof ArithmeticInstruction) {
-				
-                InstructionHandle toHandle = handle.getNext();
-                handle = handle.getNext();
-                Number lastStackValue = last(instList, toHandle);
-					
+    public void optimizeMethod(ClassGen cgen, ConstantPoolGen cpgen, Method method) {
 
-				if (lastStackValue != null) {
+        Code methodCode = method.getCode();
 
-                    int index = 0;
+        InstructionList instructionList = new InstructionList(methodCode.getCode());
 
-                    if (lastStackValue instanceof Integer) {
-                        index = cpgen.addInteger((int) lastStackValue);
-                        instList.insert(handle, new LDC(index));
-                        instList.setPositions();
+        MethodGen methodGen = new MethodGen(method.getAccessFlags(), method.getReturnType(), method.getArgumentTypes(), null, method.getName(), cgen.getClassName(), instructionList, cpgen);
+
+        ConstantPool cp = cpgen.getConstantPool();
+        Constant[] constants = cp.getConstantPool();
+
+        for (InstructionHandle handle : instructionList.getInstructionHandles()) {
+            
+            if (handle != null) {
+                if (handle.getInstruction() instanceof ArithmeticInstruction) {
+                
+                    Number result = arithmeticCalculations(instructionList, handle, cpgen);
+
+                    if (result instanceof Integer) {
+                        cpgen.addInteger((int) result);
+                        instructionList.insert(handle, new PUSH(cpgen, (int)result));
+                        deleteInstruction(instructionList, handle);
                     }
-                    if (lastStackValue instanceof Float) {
-                        index = cpgen.addFloat((float) lastStackValue);
-                        instList.insert(handle, new LDC(index));
-                        instList.setPositions();
+                    if (result instanceof Long) {
+                        cpgen.addLong((long) result);
+                        instructionList.insert(handle, new PUSH(cpgen, (long)result));
+                        deleteInstruction(instructionList, handle);
                     }
-                    if (lastStackValue instanceof Double) {
-                        index = cpgen.addDouble((double) lastStackValue);
-                        instList.insert(handle, new LDC2_W(index));
-                        instList.setPositions();
+                    if (result instanceof Float) {
+                        cpgen.addFloat((float) result);
+                        instructionList.insert(handle, new PUSH(cpgen, (float)result));
+                        deleteInstruction(instructionList, handle);
                     }
-                    if (lastStackValue instanceof Long) {
-                        index = cpgen.addLong((Long) lastStackValue);
-                        instList.insert(handle, new LDC2_W(index));
-                        instList.setPositions();
-                    }
+                    if (result instanceof Double) {
+                        cpgen.addDouble((double) result);
+                        instructionList.insert(handle, new PUSH(cpgen, (double)result));
+                        deleteInstruction(instructionList, handle);
+                    } 
+
+                } else {
+                    handle = handle.getNext();
                 }
-			} 
-			else {
-				handle = handle.getNext();
-				instList.setPositions();
-			}
-		
-			instList.setPositions(true);
-			methodGen.setMaxStack();
-			methodGen.setMaxLocals();
-			Method newMethod = methodGen.getMethod();
-			Code newMethodCode = newMethod.getCode();
-			InstructionList newInstList = new InstructionList(newMethodCode.getCode());
-			cgen.replaceMethod(method, newMethod); 			
-		}	
-
-	}
-
-	private Number last(InstructionList instList, InstructionHandle handle) {
-        InstructionHandle lastItem = handle;
-        do {
-            lastItem = lastItem.getPrev();
-        } while (!(stackChange(lastItem) || lastItem != null));
-
-        if (lastItem.getInstruction() instanceof BIPUSH) {
-            Number value = ((BIPUSH) lastItem.getInstruction()).getValue();
-            deleteInstruction(instList, lastItem);
-            return value;
-        } else if (lastItem.getInstruction() instanceof ICONST) {
-            Number value = ((ICONST) lastItem.getInstruction()).getValue();
-            deleteInstruction(instList, lastItem);
-            return value;
-        } else if (lastItem.getInstruction() instanceof DCONST) {
-            Number value = ((DCONST) lastItem.getInstruction()).getValue();
-            deleteInstruction(instList, lastItem);
-            return value;
-        } else if (lastItem.getInstruction() instanceof FCONST) {
-            Number value = ((FCONST) lastItem.getInstruction()).getValue();
-            deleteInstruction(instList, lastItem);
-            return value;
-        } else if (lastItem.getInstruction() instanceof LCONST) {
-            Number value = ((LCONST) lastItem.getInstruction()).getValue();
-            deleteInstruction(instList, lastItem);
-            return value;
-        } else if (lastItem.getInstruction() instanceof IADD) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
             }
-            return ((int) number[0] + (int) number[1]);
-        } else if (lastItem.getInstruction() instanceof IMUL) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((int) number[0] * (int) number[1]);
-        } else if (lastItem.getInstruction() instanceof IDIV) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((int) number[1] / (int) number[0]);
-        } else if (lastItem.getInstruction() instanceof ISUB) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((int) number[1] - (int) number[0]);
-        } else if (lastItem.getInstruction() instanceof IREM) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((int) number[1] % (int) number[0]);
-        } else if (lastItem.getInstruction() instanceof INEG) {
-            Number firstNumber = last(instList, lastItem);
-            if (firstNumber == null) {
-                return null;
-            }
-            deleteInstruction(instList, lastItem);
-            return (int)(0 - (int) firstNumber);
-        } else if (lastItem.getInstruction() instanceof LADD) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((long) number[0] + (long) number[1]);
-        } else if (lastItem.getInstruction() instanceof LMUL) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((long) number[0] * (long) number[1]);
-        } else if (lastItem.getInstruction() instanceof LDIV) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((long) number[1] / (long) number[0]);
-        } else if (lastItem.getInstruction() instanceof LSUB) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((long) number[1] - (long) number[0]);
-        } else if (lastItem.getInstruction() instanceof LREM) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((long) number[1] % (long) number[0]);
-        } else if (lastItem.getInstruction() instanceof LNEG) {
-            Number firstNumber = last(instList, lastItem);
-            if (firstNumber == null) {
-                return null;
-            }COMP2010 Coursework
-
-Part 1 - Lexer and Parser
-
-    To build and test, issue
-
-$ make
-$ make test
-
-Part 2 - Folding optimisation
-
-    To build and test, issue
-
-$ ant
-
-
-            deleteInstruction(instList, lastItem);
-            return (long)(0 - (long) firstNumber);
-        } else if (lastItem.getInstruction() instanceof FADD) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((float) number[0] + (float) number[1]);
-        } else if (lastItem.getInstruction() instanceof FMUL) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((float) number[0] * (float) number[1]);
-        } else if (lastItem.getInstruction() instanceof FDIV) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((float) number[1] / (float) number[0]);
-        } else if (lastItem.getInstruction() instanceof FSUB) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((float) number[1] - (float) number[0]);
-        } else if (lastItem.getInstruction() instanceof FREM) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((float) number[1] % (float) number[0]);
-        } else if (lastItem.getInstruction() instanceof FNEG) {
-            Number firstNumber = last(instList, lastItem);
-            if (firstNumber == null) {
-                return null;
-            }
-            deleteInstruction(instList, lastItem);
-            return (float)(0 - (float) firstNumber);
-        } else if (lastItem.getInstruction() instanceof DADD) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((double) number[0] + (double) number[1]);
-        } else if (lastItem.getInstruction() instanceof DMUL) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((double) number[0] * (double) number[1]);
-        } else if (lastItem.getInstruction() instanceof DDIV) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((double) number[1] / (double) number[0]);
-        } else if (lastItem.getInstruction() instanceof DSUB) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((double) number[1] - (double) number[0]);
-        } else if (lastItem.getInstruction() instanceof DREM) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            return ((double) number[1] % (double) number[0]);
-        } else if (lastItem.getInstruction() instanceof DCMPG) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            if ((double) number[1] == (double) number[0]) {
-                return 0;
-            } else if ((double) number[1] > (double) number[0]) {
-                return 1;
-            } else {
-                return -1;
-            }
-        } else if (lastItem.getInstruction() instanceof DCMPL) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            if ((double) number[1] == (double) number[0]) {
-                return 0;
-            } else if ((double) number[1] < (double) number[0]) {
-                return 1;
-            } else {
-                return -1;
-            }
-        } else if (lastItem.getInstruction() instanceof DNEG) {
-            Number firstNumber = last(instList, lastItem);
-            if (firstNumber == null) {
-                return null;
-            }
-            deleteInstruction(instList, lastItem);
-            return (double)(0 - (double) firstNumber);
-
-       } else if (lastItem.getInstruction() instanceof LCMP) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            if ((double) number[1] == (double) number[0]) {
-                return 0;
-            } else if ((double) number[1] > (double) number[0]) {
-                return 1;
-            } else {
-                return -1;
-            }
-        } else if (lastItem.getInstruction() instanceof FCMPG) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            if ((float) number[1] == (float) number[0]) {
-                return 0;
-            } else if ((float) number[1] > (float) number[0]) {
-                return 1;
-            } else {
-                return -1;
-            }
-        } else if (lastItem.getInstruction() instanceof FCMPL) {
-            Number[] number = operations(instList, lastItem);
-            if (number == null) {
-                return null;
-            }
-            if ((float) number[1] == (float) number[0]) {
-                return 0;
-            } else if ((float) number[1] < (float) number[0]) {
-                return 1;
-            } else {
-                return -1;
-            }
-        } else if (lastItem.getInstruction() instanceof LDC) {
-            LDC ldc = (LDC) lastItem.getInstruction();
-            Number value = (Number) ldc.getValue(cpgen);
-            deleteInstruction(instList, lastItem);
-            return value;
-        } else if (lastItem.getInstruction() instanceof LDC2_W) {
-            LDC2_W ldc2_w = (LDC2_W) lastItem.getInstruction();
-            Number value = (Number) ldc2_w.getValue(cpgen);
-            deleteInstruction(instList, lastItem);
-            return value;
-        } else if (lastItem.getInstruction() instanceof ConversionInstruction){
-            if (lastItem.getInstruction() instanceof I2C) { 
-                return null;
-            }
-            Number firstNumber = last(instList, lastItem);
-            if (firstNumber == null) {
-                return null;
-            }
-            Number convertedNum = convert(lastItem, firstNumber);
-            deleteInstruction(instList, lastItem);
-            return convertedNum;
+            
         }
-        return null;
-    }
-	
-	private Boolean stackChange(InstructionHandle handle) {
-        if (handle.getInstruction() instanceof ArithmeticInstruction || handle.getInstruction() instanceof BIPUSH ||
-              handle.getInstruction() instanceof DCONST || handle.getInstruction() instanceof FCONST ||
-              handle.getInstruction() instanceof ICONST || handle.getInstruction() instanceof DCMPG ||
-              handle.getInstruction() instanceof DCMPL || handle.getInstruction() instanceof FCMPG ||
-              handle.getInstruction() instanceof FCMPL || handle.getInstruction() instanceof LCMP) {
-            return true;
-        }
-		else {
-			return false;
-		}
-    }	
-	
-	private Number convert(InstructionHandle lastItem, Number firstNumber) {
 
-        if (lastItem.getInstruction() instanceof I2D) {
-            return (double)((int) firstNumber);
-        } else if (lastItem.getInstruction() instanceof D2F) {
-            return (float)((double) firstNumber);
-        } else if (lastItem.getInstruction() instanceof D2I) {
-            return (int)((double) firstNumber);
-        } else if (lastItem.getInstruction() instanceof D2L) {
-            return (long)((double) firstNumber);
-        } else if (lastItem.getInstruction() instanceof F2D) {
-            return (double)((float) firstNumber);
-        } else if (lastItem.getInstruction() instanceof F2I) {
-            return (int)((float) firstNumber);
-        } else if (lastItem.getInstruction() instanceof F2L) {
-            return (long)((float) firstNumber);
-        } else if (lastItem.getInstruction() instanceof I2B) {
-            return (byte)((int) firstNumber);
-        } else if (lastItem.getInstruction() instanceof I2D) {
-            return (double)((int) firstNumber);
-        } else if (lastItem.getInstruction() instanceof I2F) {
-            return (float)((int) firstNumber);
-        } else if (lastItem.getInstruction() instanceof I2L) {
-            return (long)((int) firstNumber);
-        } else if (lastItem.getInstruction() instanceof I2S) {
-            return (short)((int) firstNumber);
-        } else if (lastItem.getInstruction() instanceof L2D) {
-            return (double)((long) firstNumber);
-        } else if (lastItem.getInstruction() instanceof L2F) {
-            return (float)((long) firstNumber);
-        } else if (lastItem.getInstruction() instanceof L2I) {
-            return (int)((long) firstNumber);
-        } else if (lastItem.getInstruction() instanceof L2F) {
-            return (float)((long) firstNumber);
-        }
-        return null;
+        instructionList.setPositions(true);
+        methodGen.setMaxStack();
+        methodGen.setMaxLocals();
+
+        Method newMethod = methodGen.getMethod();
+        cgen.replaceMethod(method, newMethod);
+
+        cgen.setMajor(50);
+        this.optimized = gen.getJavaClass();
     }
 
-	private void deleteInstruction(InstructionList instList, InstructionHandle item) {
-		instList.redirectBranches(item, item.getPrev());
-		try {
-			instList.delete(item);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+    private void optimize() {
+        // Load the original class into a class generator
+        ClassGen cgen = new ClassGen(original);
+        ConstantPoolGen cpgen = cgen.getConstantPool();
 
-	}
+        // Do optimization here
+        Method[] methods = cgen.getMethods();
+        for (Method method: methods)
+        {
+            optimizeMethod(cgen, cpgen, method);
+        }
 
-	private Number[] operations(InstructionList instList, InstructionHandle lastItem) {
-        Number[] number = new Number[2];
-        number[0] =  last(instList, lastItem);
-        if (number[0] == null) {
-            return null;
-        }
-        number[1] =  last(instList, lastItem);
-        if (number[1] == null) {
-            return null;
-        }
-        deleteInstruction(instList, lastItem);
-        return number;
+        // we generate a new class with modifications
+        // and store it in a member variable
+        cgen.setMajor(50);
+        this.optimized = cgen.getJavaClass();
     }
 
-	public void optimize()
-	{
-		ClassGen cgen = new ClassGen(original);
-		ConstantPoolGen cpgen = cgen.getConstantPool();
-
-		cgen.setMajor(50);
-
-		Method[] method = cgen.getMethods();
-		
-		for (Method m: method) {
-			
-			optimizeMethod(cgen, cpgen, m);
-
-		}
+    public Number arithmeticCalculations(InstructionList instructionList, InstructionHandle handle, ConstantPoolGen cpgen) {
         
-		this.optimized = gen.getJavaClass();
-	}
+        if (handle.getInstruction() instanceof IADD) {
+            int int1 = (int)getTopStackValue(instructionList, handle, cpgen);
+            int int2 = (int)getTopStackValue(instructionList, handle, cpgen);
+            return int1 + int2;
+        } else if (handle.getInstruction() instanceof ISUB) {
+            int int1 = (int)getTopStackValue(instructionList, handle, cpgen);
+            int int2 = (int)getTopStackValue(instructionList, handle, cpgen);
+            return int2 - int1;
+        } else if (handle.getInstruction() instanceof IMUL) {
+            int int1 = (int)getTopStackValue(instructionList, handle, cpgen);
+            int int2 = (int)getTopStackValue(instructionList, handle, cpgen);
+            return int1 * int2;
+        } else if (handle.getInstruction() instanceof IDIV) {
+            int int1 = (int)getTopStackValue(instructionList, handle, cpgen);
+            int int2 = (int)getTopStackValue(instructionList, handle, cpgen);
+            return int2 / int1;
+        } else if (handle.getInstruction() instanceof INEG) {
+            return -(int)getTopStackValue(instructionList, handle, cpgen);
+        } else if (handle.getInstruction() instanceof IREM) {
+            int int1 = (int)getTopStackValue(instructionList, handle, cpgen);
+            int int2 = (int)getTopStackValue(instructionList, handle, cpgen);
+            return int2 % int1;
+        } 
 
-	
-	public void write(String optimisedFilePath)
-	{
-		this.optimize();
+        else if (handle.getInstruction() instanceof LADD) {
+            long long1 = (long)getTopStackValue(instructionList, handle, cpgen);
+            long long2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            return long1 + long2;
+        } else if (handle.getInstruction() instanceof LSUB) {
+            long long1 = (long)getTopStackValue(instructionList, handle, cpgen);
+            long long2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            return long2 - long1;
+        } else if (handle.getInstruction() instanceof LMUL) {
+            long long1 = (long)getTopStackValue(instructionList, handle, cpgen);
+            long long2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            return long1 * long2;
+        } else if (handle.getInstruction() instanceof LDIV) {
+            long long1 = (long)getTopStackValue(instructionList, handle, cpgen);
+            long long2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            return long2 / long1;
+        } else if (handle.getInstruction() instanceof LNEG) {
+            return -(long)getTopStackValue(instructionList, handle, cpgen);
+        } else if (handle.getInstruction() instanceof LREM) {
+            long long1 = (long)getTopStackValue(instructionList, handle, cpgen);
+            long long2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            return long2 % long1;
+        } 
 
-		try {
-			FileOutputStream out = new FileOutputStream(new File(optimisedFilePath));
-			this.optimized.dump(out);
-		} catch (FileNotFoundException e) {
+        else if (handle.getInstruction() instanceof FADD) {
+            float float1 = (long)getTopStackValue(instructionList, handle, cpgen);
+            float float2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            return float1 + float2;
+        } else if (handle.getInstruction() instanceof FSUB) {
+            float float1 = (long)getTopStackValue(instructionList, handle, cpgen);
+            float float2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            return float2 - float1;
+        } else if (handle.getInstruction() instanceof FMUL) {
+            float float1 = (long)getTopStackValue(instructionList, handle, cpgen);
+            float float2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            return float1 * float2;
+        } else if (handle.getInstruction() instanceof FDIV) {
+            float float1 = (long)getTopStackValue(instructionList, handle, cpgen);
+            float float2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            return float2 / float1;
+        } else if (handle.getInstruction() instanceof FNEG) {
+            return -(float)getTopStackValue(instructionList, handle, cpgen);
+        } else if (handle.getInstruction() instanceof FREM) {
+            float float1 = (long)getTopStackValue(instructionList, handle, cpgen);
+            float float2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            return float2 % float1;
+        }
 
-			e.printStackTrace();
-		} catch (IOException e) {
+        else if (handle.getInstruction() instanceof DADD) {
+            double double1 = (double)getTopStackValue(instructionList, handle, cpgen);
+            double double2 = (double)getTopStackValue(instructionList, handle, cpgen);
+            return double1 + double2;
+        } else if (handle.getInstruction() instanceof DSUB) {
+            double double1 = (double)getTopStackValue(instructionList, handle, cpgen);
+            double double2 = (double)getTopStackValue(instructionList, handle, cpgen);
+            return double2 - double1;
+        }else if (handle.getInstruction() instanceof DMUL) {
+            double double1 = (double)getTopStackValue(instructionList, handle, cpgen);
+            double double2 = (double)getTopStackValue(instructionList, handle, cpgen);
+            return double1 * double2;
+        } else if (handle.getInstruction() instanceof DDIV) {
+            double double1 = (double)getTopStackValue(instructionList, handle, cpgen);
+            double double2 = (double)getTopStackValue(instructionList, handle, cpgen);
+            return double2 / double1;
+        } else if (handle.getInstruction() instanceof DNEG) {
+            return -(double)getTopStackValue(instructionList, handle, cpgen);
+        } else if (handle.getInstruction() instanceof DREM) {
+            double double1 = (double)getTopStackValue(instructionList, handle, cpgen);
+            double double2 = (double)getTopStackValue(instructionList, handle, cpgen);
+            return double2 % double1;
+        } 
 
-			e.printStackTrace();
-		}
-	}
+        return null;
+    }
+
+    public void deleteInstruction(InstructionList instructionList, InstructionHandle handle) {
+        instructionList.redirectBranches(handle, handle.getPrev());
+        try {
+            instructionList.delete(handle);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Number getTopStackValue(InstructionList instructionList, InstructionHandle handle, ConstantPoolGen cpgen) {
+        while(handle != null) {
+            if (handle.getInstruction() instanceof BIPUSH) {
+                Number value = ((BIPUSH) handle.getInstruction()).getValue();
+                deleteInstruction(instructionList, handle);
+                return value;
+            } else if (handle.getInstruction() instanceof SIPUSH) {
+                Number value = ((SIPUSH) handle.getInstruction()).getValue();
+                deleteInstruction(instructionList, handle);
+                return value;
+            } else if (handle.getInstruction() instanceof ICONST) {
+                Number value = ((ICONST) handle.getInstruction()).getValue();
+                deleteInstruction(instructionList, handle);
+                return value;
+            } else if (handle.getInstruction() instanceof LCONST) {
+                Number value = ((LCONST) handle.getInstruction()).getValue();
+                deleteInstruction(instructionList, handle);
+                return value;
+            } else if (handle.getInstruction() instanceof FCONST) {
+                Number value = ((FCONST) handle.getInstruction()).getValue();
+                deleteInstruction(instructionList, handle);
+                return value;
+            } else if (handle.getInstruction() instanceof DCONST) {
+                Number value = ((DCONST) handle.getInstruction()).getValue();
+                deleteInstruction(instructionList, handle);
+                return value;
+            } else if (handle.getInstruction() instanceof LDC) {
+                Number value = (Number)((LDC) handle.getInstruction()).getValue(cpgen);
+                deleteInstruction(instructionList, handle);
+                return value;
+            } else if (handle.getInstruction() instanceof LDC2_W) {
+                Number value = (Number)((LDC2_W) handle.getInstruction()).getValue(cpgen);
+                deleteInstruction(instructionList, handle);
+                return value;
+            } else {
+                handle = handle.getPrev();
+            }
+        }
+        return null;
+    }
+
+    public void write(String optimisedFilePath)
+    {
+        this.optimize();
+
+        try {
+            FileOutputStream out = new FileOutputStream(new File(optimisedFilePath));
+            this.optimized.dump(out);
+        } catch (FileNotFoundException e) {
+            // Auto-generated catch block
+            e.printStackTrace();
+        } catch (IOException e) {
+            // Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
 }

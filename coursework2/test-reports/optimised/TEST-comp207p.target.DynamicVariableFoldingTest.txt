@@ -1,8 +1,38 @@
 Testsuite: comp207p.target.DynamicVariableFoldingTest
-Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.031 sec
+Tests run: 5, Failures: 0, Errors: 5, Skipped: 0, Time elapsed: 0.024 sec
 
-Testcase: testMethodThree took 0.003 sec
-Testcase: testMethodFour took 0.003 sec
+Testcase: testMethodThree took 0.002 sec
+	Caused an ERROR
+StackMapTable format error: bad type array size in method comp207p.target.DynamicVariableFolding.methodTwo()Z
+java.lang.VerifyError: StackMapTable format error: bad type array size in method comp207p.target.DynamicVariableFolding.methodTwo()Z
+	at comp207p.target.DynamicVariableFoldingTest.<init>(Unknown Source)
+	at java.lang.reflect.Constructor.newInstance(Constructor.java:422)
+
+Testcase: testMethodFour took 0 sec
+	Caused an ERROR
+StackMapTable format error: bad type array size in method comp207p.target.DynamicVariableFolding.methodTwo()Z
+java.lang.VerifyError: StackMapTable format error: bad type array size in method comp207p.target.DynamicVariableFolding.methodTwo()Z
+	at comp207p.target.DynamicVariableFoldingTest.<init>(Unknown Source)
+	at java.lang.reflect.Constructor.newInstance(Constructor.java:422)
+
 Testcase: testMethodOne took 0 sec
+	Caused an ERROR
+StackMapTable format error: bad type array size in method comp207p.target.DynamicVariableFolding.methodTwo()Z
+java.lang.VerifyError: StackMapTable format error: bad type array size in method comp207p.target.DynamicVariableFolding.methodTwo()Z
+	at comp207p.target.DynamicVariableFoldingTest.<init>(Unknown Source)
+	at java.lang.reflect.Constructor.newInstance(Constructor.java:422)
+
 Testcase: testMethodTwoReturn took 0 sec
+	Caused an ERROR
+StackMapTable format error: bad type array size in method comp207p.target.DynamicVariableFolding.methodTwo()Z
+java.lang.VerifyError: StackMapTable format error: bad type array size in method comp207p.target.DynamicVariableFolding.methodTwo()Z
+	at comp207p.target.DynamicVariableFoldingTest.<init>(Unknown Source)
+	at java.lang.reflect.Constructor.newInstance(Constructor.java:422)
+
 Testcase: testMethodTwoOut took 0 sec
+	Caused an ERROR
+StackMapTable format error: bad type array size in method comp207p.target.DynamicVariableFolding.methodTwo()Z
+java.lang.VerifyError: StackMapTable format error: bad type array size in method comp207p.target.DynamicVariableFolding.methodTwo()Z
+	at comp207p.target.DynamicVariableFoldingTest.<init>(Unknown Source)
+	at java.lang.reflect.Constructor.newInstance(Constructor.java:422)
+
