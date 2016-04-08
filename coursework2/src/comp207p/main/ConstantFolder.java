@@ -47,7 +47,7 @@ public class ConstantFolder {
             if (handle != null) {
                 if (handle.getInstruction() instanceof ArithmeticInstruction) {
                 
-                    Number result = arithmeticCalculations(instructionList, handle, cpgen);
+                    Number result = optimizedOperations(instructionList, handle, cpgen);
 
                     if (result instanceof Integer) {
                         cpgen.addInteger((int) result);
@@ -70,7 +70,16 @@ public class ConstantFolder {
                         deleteInstruction(instructionList, handle);
                     } 
 
-                } else {
+                } else if (comparisonOperator(handle)) {
+
+                    Number result = optimizedOperations(instructionList, handle, cpgen);
+
+                    cpgen.addInteger((int) result);
+                    instructionList.insert(handle, new PUSH(cpgen, (int)result));
+                    deleteInstruction(instructionList, handle);
+                }
+
+                else {
                     handle = handle.getNext();
                 }
             }
@@ -85,126 +94,192 @@ public class ConstantFolder {
         cgen.replaceMethod(method, newMethod);
 
         cgen.setMajor(50);
-        this.optimized = gen.getJavaClass();
     }
 
     private void optimize() {
-        // Load the original class into a class generator
         ClassGen cgen = new ClassGen(original);
         ConstantPoolGen cpgen = cgen.getConstantPool();
 
-        // Do optimization here
         Method[] methods = cgen.getMethods();
         for (Method method: methods)
         {
             optimizeMethod(cgen, cpgen, method);
         }
 
-        // we generate a new class with modifications
-        // and store it in a member variable
         cgen.setMajor(50);
         this.optimized = cgen.getJavaClass();
     }
 
-    public Number arithmeticCalculations(InstructionList instructionList, InstructionHandle handle, ConstantPoolGen cpgen) {
+    public Number optimizedOperations(InstructionList instructionList, InstructionHandle handle, ConstantPoolGen cpgen) {
         
+        //int
         if (handle.getInstruction() instanceof IADD) {
-            int int1 = (int)getTopStackValue(instructionList, handle, cpgen);
-            int int2 = (int)getTopStackValue(instructionList, handle, cpgen);
+            int int1 = (int)getValueFromStack(instructionList, handle, cpgen);
+            int int2 = (int)getValueFromStack(instructionList, handle, cpgen);
             return int1 + int2;
         } else if (handle.getInstruction() instanceof ISUB) {
-            int int1 = (int)getTopStackValue(instructionList, handle, cpgen);
-            int int2 = (int)getTopStackValue(instructionList, handle, cpgen);
+            int int1 = (int)getValueFromStack(instructionList, handle, cpgen);
+            int int2 = (int)getValueFromStack(instructionList, handle, cpgen);
             return int2 - int1;
         } else if (handle.getInstruction() instanceof IMUL) {
-            int int1 = (int)getTopStackValue(instructionList, handle, cpgen);
-            int int2 = (int)getTopStackValue(instructionList, handle, cpgen);
+            int int1 = (int)getValueFromStack(instructionList, handle, cpgen);
+            int int2 = (int)getValueFromStack(instructionList, handle, cpgen);
             return int1 * int2;
         } else if (handle.getInstruction() instanceof IDIV) {
-            int int1 = (int)getTopStackValue(instructionList, handle, cpgen);
-            int int2 = (int)getTopStackValue(instructionList, handle, cpgen);
+            int int1 = (int)getValueFromStack(instructionList, handle, cpgen);
+            int int2 = (int)getValueFromStack(instructionList, handle, cpgen);
             return int2 / int1;
         } else if (handle.getInstruction() instanceof INEG) {
-            return -(int)getTopStackValue(instructionList, handle, cpgen);
+            return -(int)getValueFromStack(instructionList, handle, cpgen);
         } else if (handle.getInstruction() instanceof IREM) {
-            int int1 = (int)getTopStackValue(instructionList, handle, cpgen);
-            int int2 = (int)getTopStackValue(instructionList, handle, cpgen);
+            int int1 = (int)getValueFromStack(instructionList, handle, cpgen);
+            int int2 = (int)getValueFromStack(instructionList, handle, cpgen);
             return int2 % int1;
         } 
 
+        //long
         else if (handle.getInstruction() instanceof LADD) {
-            long long1 = (long)getTopStackValue(instructionList, handle, cpgen);
-            long long2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            long long1 = (long)getValueFromStack(instructionList, handle, cpgen);
+            long long2 = (long)getValueFromStack(instructionList, handle, cpgen);
             return long1 + long2;
         } else if (handle.getInstruction() instanceof LSUB) {
-            long long1 = (long)getTopStackValue(instructionList, handle, cpgen);
-            long long2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            long long1 = (long)getValueFromStack(instructionList, handle, cpgen);
+            long long2 = (long)getValueFromStack(instructionList, handle, cpgen);
             return long2 - long1;
         } else if (handle.getInstruction() instanceof LMUL) {
-            long long1 = (long)getTopStackValue(instructionList, handle, cpgen);
-            long long2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            long long1 = (long)getValueFromStack(instructionList, handle, cpgen);
+            long long2 = (long)getValueFromStack(instructionList, handle, cpgen);
             return long1 * long2;
         } else if (handle.getInstruction() instanceof LDIV) {
-            long long1 = (long)getTopStackValue(instructionList, handle, cpgen);
-            long long2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            long long1 = (long)getValueFromStack(instructionList, handle, cpgen);
+            long long2 = (long)getValueFromStack(instructionList, handle, cpgen);
             return long2 / long1;
         } else if (handle.getInstruction() instanceof LNEG) {
-            return -(long)getTopStackValue(instructionList, handle, cpgen);
+            return -(long)getValueFromStack(instructionList, handle, cpgen);
         } else if (handle.getInstruction() instanceof LREM) {
-            long long1 = (long)getTopStackValue(instructionList, handle, cpgen);
-            long long2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            long long1 = (long)getValueFromStack(instructionList, handle, cpgen);
+            long long2 = (long)getValueFromStack(instructionList, handle, cpgen);
             return long2 % long1;
         } 
 
+        //float
         else if (handle.getInstruction() instanceof FADD) {
-            float float1 = (long)getTopStackValue(instructionList, handle, cpgen);
-            float float2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            float float1 = (long)getValueFromStack(instructionList, handle, cpgen);
+            float float2 = (long)getValueFromStack(instructionList, handle, cpgen);
             return float1 + float2;
         } else if (handle.getInstruction() instanceof FSUB) {
-            float float1 = (long)getTopStackValue(instructionList, handle, cpgen);
-            float float2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            float float1 = (long)getValueFromStack(instructionList, handle, cpgen);
+            float float2 = (long)getValueFromStack(instructionList, handle, cpgen);
             return float2 - float1;
         } else if (handle.getInstruction() instanceof FMUL) {
-            float float1 = (long)getTopStackValue(instructionList, handle, cpgen);
-            float float2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            float float1 = (long)getValueFromStack(instructionList, handle, cpgen);
+            float float2 = (long)getValueFromStack(instructionList, handle, cpgen);
             return float1 * float2;
         } else if (handle.getInstruction() instanceof FDIV) {
-            float float1 = (long)getTopStackValue(instructionList, handle, cpgen);
-            float float2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            float float1 = (long)getValueFromStack(instructionList, handle, cpgen);
+            float float2 = (long)getValueFromStack(instructionList, handle, cpgen);
             return float2 / float1;
         } else if (handle.getInstruction() instanceof FNEG) {
-            return -(float)getTopStackValue(instructionList, handle, cpgen);
+            return -(float)getValueFromStack(instructionList, handle, cpgen);
         } else if (handle.getInstruction() instanceof FREM) {
-            float float1 = (long)getTopStackValue(instructionList, handle, cpgen);
-            float float2 = (long)getTopStackValue(instructionList, handle, cpgen);
+            float float1 = (long)getValueFromStack(instructionList, handle, cpgen);
+            float float2 = (long)getValueFromStack(instructionList, handle, cpgen);
             return float2 % float1;
         }
 
+        //double
         else if (handle.getInstruction() instanceof DADD) {
-            double double1 = (double)getTopStackValue(instructionList, handle, cpgen);
-            double double2 = (double)getTopStackValue(instructionList, handle, cpgen);
+            double double1 = (double)getValueFromStack(instructionList, handle, cpgen);
+            double double2 = (double)getValueFromStack(instructionList, handle, cpgen);
             return double1 + double2;
         } else if (handle.getInstruction() instanceof DSUB) {
-            double double1 = (double)getTopStackValue(instructionList, handle, cpgen);
-            double double2 = (double)getTopStackValue(instructionList, handle, cpgen);
+            double double1 = (double)getValueFromStack(instructionList, handle, cpgen);
+            double double2 = (double)getValueFromStack(instructionList, handle, cpgen);
             return double2 - double1;
         }else if (handle.getInstruction() instanceof DMUL) {
-            double double1 = (double)getTopStackValue(instructionList, handle, cpgen);
-            double double2 = (double)getTopStackValue(instructionList, handle, cpgen);
+            double double1 = (double)getValueFromStack(instructionList, handle, cpgen);
+            double double2 = (double)getValueFromStack(instructionList, handle, cpgen);
             return double1 * double2;
         } else if (handle.getInstruction() instanceof DDIV) {
-            double double1 = (double)getTopStackValue(instructionList, handle, cpgen);
-            double double2 = (double)getTopStackValue(instructionList, handle, cpgen);
+            double double1 = (double)getValueFromStack(instructionList, handle, cpgen);
+            double double2 = (double)getValueFromStack(instructionList, handle, cpgen);
             return double2 / double1;
         } else if (handle.getInstruction() instanceof DNEG) {
-            return -(double)getTopStackValue(instructionList, handle, cpgen);
+            return -(double)getValueFromStack(instructionList, handle, cpgen);
         } else if (handle.getInstruction() instanceof DREM) {
-            double double1 = (double)getTopStackValue(instructionList, handle, cpgen);
-            double double2 = (double)getTopStackValue(instructionList, handle, cpgen);
+            double double1 = (double)getValueFromStack(instructionList, handle, cpgen);
+            double double2 = (double)getValueFromStack(instructionList, handle, cpgen);
             return double2 % double1;
         } 
 
+        //comparisons
+        else if (handle.getInstruction() instanceof LCMP) {
+            long long1 = (long)getValueFromStack(instructionList, handle, cpgen);
+            long long2 = (long)getValueFromStack(instructionList, handle, cpgen);
+            if (long1 == long2) {
+                return 0;
+            } else if (long1 > long2) {
+                return 1;
+            } else {
+                return -1;
+            }
+        } else if (handle.getInstruction() instanceof FCMPG) {
+            float float1 = (float)getValueFromStack(instructionList, handle, cpgen);
+            float float2 = (float)getValueFromStack(instructionList, handle, cpgen);
+            if (float1 == float2) {
+                return 0;
+            } else if (float1 > float2) {
+                return 1;
+            } else {
+                return -1;
+            }
+        } else if (handle.getInstruction() instanceof FCMPL) {
+            float float1 = (float)getValueFromStack(instructionList, handle, cpgen);
+            float float2 = (float)getValueFromStack(instructionList, handle, cpgen);
+            if (float1 == float2) {
+                return 0;
+            } else if (float2 > float1) {
+                return 1;
+            } else {
+                return -1;
+            }
+        } else if (handle.getInstruction() instanceof DCMPG) {
+            double double1 = (double)getValueFromStack(instructionList, handle, cpgen);
+            double double2 = (double)getValueFromStack(instructionList, handle, cpgen);
+            if (double1 == double2) {
+                return 0;
+            } else if (double1 > double2) {
+                return 1;
+            } else {
+                return -1;
+            }
+        } else if (handle.getInstruction() instanceof DCMPL) {
+            double double1 = (double)getValueFromStack(instructionList, handle, cpgen);
+            double double2 = (double)getValueFromStack(instructionList, handle, cpgen);
+            if (double1 == double2) {
+                return 0;
+            } else if (double2 > double1) {
+                return 1;
+            } else {
+                return -1;
+            }
+        }
+
         return null;
+    }
+
+    public Boolean comparisonOperator(InstructionHandle handle) {
+
+        if ( handle.getInstruction() instanceof LCMP
+            || handle.getInstruction() instanceof FCMPG 
+            || handle.getInstruction() instanceof FCMPL 
+            || handle.getInstruction() instanceof DCMPG 
+            || handle.getInstruction() instanceof DCMPL) {
+            
+            return true;
+        }
+        return false;
+
     }
 
     public void deleteInstruction(InstructionList instructionList, InstructionHandle handle) {
@@ -216,7 +291,7 @@ public class ConstantFolder {
         }
     }
 
-    public Number getTopStackValue(InstructionList instructionList, InstructionHandle handle, ConstantPoolGen cpgen) {
+    public Number getValueFromStack(InstructionList instructionList, InstructionHandle handle, ConstantPoolGen cpgen) {
         while(handle != null) {
             if (handle.getInstruction() instanceof BIPUSH) {
                 Number value = ((BIPUSH) handle.getInstruction()).getValue();

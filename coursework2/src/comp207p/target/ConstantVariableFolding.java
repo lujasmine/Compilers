@@ -15,8 +15,8 @@ public class ConstantVariableFolding
     }
 
     public boolean methodThree(){
-        int x = 12345;
-        int y = 54321;
+        long x = 12345;
+        long y = 54321;
         return x > y;
     }
 
